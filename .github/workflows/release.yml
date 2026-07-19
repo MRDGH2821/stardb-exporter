@@ -1,138 +1,108 @@
 name: Release
-
 on: workflow_dispatch
-
 permissions:
   contents: write
-
 jobs:
   build-windows:
     name: Build Windows
     runs-on: windows-latest
-
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
-
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Get Rust Toolchain
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@b2417cde72dcf67f306c0ae8e0828a81bf0b189f # v1.0.6
         with:
           toolchain: stable
-
       - name: Build pktmon version
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@ae10961054e4aa8b4aa7dffede299aaf087aa33b # v1.0.1
         with:
           command: build
           args: --release --features pktmon
-
       - name: Move pktmon exe
         run: mv -Force target/release/stardb-exporter.exe target/release/stardb-exporter-pktmon.exe
-
       - name: Get Npcap Sdk
         run: |
           curl https://npcap.com/dist/npcap-sdk-1.16.zip -o sdk.zip
           unzip sdk.zip
-
       - name: Build npcap version
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@ae10961054e4aa8b4aa7dffede299aaf087aa33b # v1.0.1
         with:
           command: build
           args: --release --features pcap
         env:
           LIB: ${{ github.workspace }}/Lib/x64/
-
       - name: Move pcap exe
         run: mv -Force target/release/stardb-exporter.exe target/release/stardb-exporter-pcap.exe
-
       - name: Upload pktmon Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-pktmon
           path: target/release/stardb-exporter-pktmon.exe
-
       - name: Upload pcap Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-pcap
           path: target/release/stardb-exporter-pcap.exe
-
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
-
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Install libpcap
         run: sudo apt-get update && sudo apt-get install -y libpcap-dev
-
       - name: Get Rust Toolchain
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@b2417cde72dcf67f306c0ae8e0828a81bf0b189f # v1.0.6
         with:
           toolchain: stable
-
       - name: Build
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@ae10961054e4aa8b4aa7dffede299aaf087aa33b # v1.0.1
         with:
           command: build
           args: --release --features pcap
-
       - name: Cap Net Raw
         run: sudo setcap CAP_NET_RAW=+ep target/release/stardb-exporter
-
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: linux
           path: target/release/stardb-exporter
-
   build-macos:
     name: Build Macos
     runs-on: macos-latest
-
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
-
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Install libpcap
         run: brew update && brew install libpcap
-
       - name: Get Rust Toolchain
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@b2417cde72dcf67f306c0ae8e0828a81bf0b189f # v1.0.6
         with:
           toolchain: stable
-
       - name: Build
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@ae10961054e4aa8b4aa7dffede299aaf087aa33b # v1.0.1
         with:
           command: build
           args: --release --features pcap
-
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: macos
           path: target/release/stardb-exporter
-
   release:
     name: Release
     needs: [build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
-
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Get package version
         id: cargo-get
         uses: nicolaiunrein/cargo-get@master
         with:
           subcommand: package.version
-
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
-
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
       - name: Rename
         run: |
           cp windows-pktmon/stardb-exporter-pktmon.exe stardb-exporter-pktmon.exe
@@ -145,7 +115,6 @@ jobs:
           cp macos/stardb-exporter stardb-exporter
           cp stardb-exporter stardb-exporter-macos
           zip stardb-exporter-v${{ steps.cargo-get.outputs.metadata }}-x86_64-apple-darwin.zip stardb-exporter
-
       - name: Release
         uses: marvinpinto/action-automatic-releases@latest
         with:
