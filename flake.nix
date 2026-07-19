@@ -27,9 +27,37 @@
           inherit system overlays;
         };
         treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
+        cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
       in {
         formatter = treefmtEval.config.build.wrapper;
         checks.formatting = treefmtEval.config.build.check self;
+        packages.default = pkgs.rustPlatform.buildRustPackage {
+          pname = cargoToml.package.name;
+          version = cargoToml.package.version;
+
+          src = pkgs.lib.cleanSource ./.;
+
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+            outputHashes = {
+              "auto-artifactarium-1.2.2" = "sha256-r0yy9T8XvZWRtH/1OczSclw5MX2nFQkwB5jehuRxFS0=";
+              "auto-reliquary-1.2.0" = "sha256-OLAFPCqXAUl7k4h73sUykBNj5J9kQ8HboMjAjmJQtu8=";
+              "kcp-0.6.0" = "sha256-YzG8Ay+FquV3jwbdfh3bZQO3UYgM7iv8K0RtagYaS2o=";
+            };
+          };
+
+          buildFeatures = ["pcap"];
+
+          nativeBuildInputs = [pkgs.pkg-config];
+          buildInputs = [pkgs.openssl pkgs.libpcap];
+
+          meta = {
+            description = "Export HSR/Genshin data via packet capture";
+            homepage = "https://github.com/juliuskreutz/stardb-exporter";
+            license = pkgs.lib.licenses.mit;
+            mainProgram = "stardb-exporter";
+          };
+        };
         devShells.default = with pkgs;
           mkShell {
             buildInputs = [
